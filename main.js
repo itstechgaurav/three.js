@@ -1,89 +1,83 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as dat from 'dat.gui';
-import gsap from 'gsap';
+import { Mesh } from 'three';
 
-const canvas = document.getElementById("webgl");
-const sizes = {
-  width: window.innerWidth,
-  height: window.innerHeight,
-}
+class Scene {
+  constructor(selector) {
+    this.canvas = document.querySelector(selector);
+    this.sizes = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }
 
-const cubeColor = 0x00ff00;
+    this.init();
+    this.createObjects(); // start creating objects
+    this.render(); // start rendering
+    this.onResize(); // on resize handle
+    this.debugMenu(); // settup debug menu
+  }
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(70, sizes.width / sizes.height, 0.1, 2000);
+  init() {
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(70, this.sizes.width / this.sizes.height, 0.1, 2000);
+    this.camera.position.z = 2.5;
 
-const geometry = new THREE.BoxBufferGeometry(1, 1, 1, 20, 20, 20);
-const meterial = new THREE.MeshBasicMaterial({
-  color: cubeColor,
-  wireframe: true,
-});
+    // adding orbit control
+    this.control = new OrbitControls(this.camera, this.canvas);
+    this.control.enableDamping = true;
 
-const cube = new THREE.Mesh(geometry, meterial);
-scene.add(cube);
-const control = new OrbitControls(camera, canvas);
-control.enableDamping = true;
+    // setting up renderer
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+    });
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  }
 
-camera.position.z = 2;
+  render() {
+    this.animate();
+    this.control.update();
+    this.renderer.render(this.scene, this.camera);
+    requestAnimationFrame(this.render.bind(this));
+  }
 
+  onResize() {
+    window.addEventListener('resize', () => {
+      this.sizes.width = window.innerWidth;
+      this.sizes.height = window.innerHeight;
+      this.canvas.width = this.sizes.width;
+      this.canvas.height = this.sizes.height;
 
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-});
-
-renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-const render = () => {
-  control.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(render);
-}
-render();
-
-// resize event
-window.addEventListener('resize', () => {
-  sizes.width = window.innerWidth;
-  sizes.height = window.innerHeight;
-  canvas.width = sizes.width;
-  canvas.height = sizes.height;
-
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
-  renderer.setSize(sizes.width, sizes.height);
-})
-
-// debug ui
-
-const dUI = new dat.GUI();
-const cubeFolder = dUI.addFolder('Cube');
-
-// cube color
-cubeFolder.addColor({
-  color: cubeColor
-}, 'color').onChange(val => {
-  meterial.color = new THREE.Color(val);
-});
-
-// cube wireframe 
-cubeFolder.add(meterial, 'wireframe').name("Show wireframe");
-
-// cube show/hide
-cubeFolder.add(cube, 'visible').name("Show Cube")
-
-// spin cube
-cubeFolder.add({
-  spin() {
-    // enable gsap to spin the cube
-    gsap.to(cube.rotation, {
-      y: Math.PI + cube.rotation.y,
-      duration: 2,
+      this.camera.aspect = this.sizes.width / this.sizes.height;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(this.sizes.width, this.sizes.height);
     })
   }
-}, 'spin').name("Sping the Cube");
 
-const cubePosition = cubeFolder.addFolder('Cube Position');
-cubePosition.add(cube.position, 'x', -1, 1, .001);
-cubePosition.add(cube.position, 'y', -1, 1, .001);
-cubePosition.add(cube.position, 'z', -1, 1, .001);
+  debugMenu() {
+    this.dUI = new dat.GUI(); // initialize the debuging menu
+  }
+
+  animate() {
+
+  }
+
+  createFloor() {
+    const geometry = new THREE.PlaneGeometry(2.5, 3);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide
+    });
+    this.floor = new THREE.Mesh(geometry, material);
+    this.floor.rotation.x = 2;
+    this.scene.add(this.floor);
+  }
+
+  createObjects() {
+    // just create a floor
+    this.createFloor(); // initial floor
+  }
+}
+
+new Scene("#webgl");
